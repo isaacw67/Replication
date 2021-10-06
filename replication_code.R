@@ -3,12 +3,7 @@ rm(list=ls())
 
 
 # Import Data:
-library(readr)
-library(dplyr)
-library(lubridate)
-library(ggplot2)
 library(fixest)
-library(dbplyr)
 library(tidyverse)
 counties <- read_csv("data/AER20090377_CountyList.csv")
 CNOx <- read_csv("data/AER20090377_CumulativeNOxInstallations.csv")
@@ -63,13 +58,13 @@ final_subset <- mutate(final_subset,
 
 
 # Lets get RFG vs. Baseline
-final_subset <- arrange(final_subset, Date)
+final_subset <- arrange(final_subset, Date) # fips*statid, dow^cenr, cr^y, dow^Temp
 final_subset <- drop_na(final_subset, any_of(c("TempMax", "TempMin", "Rain", "Snow")))
 final_subset <- select(final_subset, any_of(c("TempMax", "TempMin", "Rain", "Snow", "day_year", "day_of_week",
                                               "tempmax_lag", "tempmin_lag", "CARBCty", "RFGCty", "RVPCty", "treat_rvpII", 
                                               "treat_rvpI", "treat_rfg", "treat_carb", "fips", "panelid",  "state_code", "year",
-                                              "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max")))
-
+                                              "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max", "census_region" )))
+# fips*statid, dow^cenr, cr^y, dow^Temp
 # I've removed a bunch of interaction terms from the year_weather one since it ate too much memory
 setFixest_fml(..weather = ~ poly(TempMax, 3, simple = TRUE) + (poly(TempMin, 3, simple = TRUE)) + 
                 TempMax*TempMin + (poly(Snow, 2, simple = TRUE)) + (poly(Snow, 2, simple = TRUE)) + TempMax*Rain 
@@ -78,10 +73,11 @@ setFixest_fml(..weather = ~ poly(TempMax, 3, simple = TRUE) + (poly(TempMin, 3, 
               ..dates = ~ day_year + day_of_week,
               ..week_weather = ~ i(day_of_week,TempMax) + i(day_of_week,TempMin) + i(day_of_week,Rain) + i(day_of_week,Snow)
 ) 
-
-rfg <- feols(ozone_max ~ ..weather + ..dates + ..week_weather + ..year_weather | panelid,
+a
+rfg <- feols(ozone_max ~ ..weather + ..dates + ..year_weather | panelid,
              data = final_subset, nthreads = 3, mem.clean  = TRUE, cluster = c("state_code", "year"))
 
+# fips*statid, dow^cenr, cr^y, dow^Temp
 rfg_sub <- final_subset
 rfg_sub <- slice(rfg_sub, rfg$obs_selection$subset)
 rfg_sub <- slice(rfg_sub, rfg$obs_selection$obsRemoved)
