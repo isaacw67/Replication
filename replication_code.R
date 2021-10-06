@@ -4,6 +4,7 @@ rm(list=ls())
 
 # Import Data:
 library(fixest)
+library(lubridate)
 library(tidyverse)
 counties <- read_csv("data/AER20090377_CountyList.csv")
 CNOx <- read_csv("data/AER20090377_CumulativeNOxInstallations.csv")
@@ -63,32 +64,36 @@ final_subset <- drop_na(final_subset, any_of(c("TempMax", "TempMin", "Rain", "Sn
 final_subset <- select(final_subset, any_of(c("TempMax", "TempMin", "Rain", "Snow", "day_year", "day_of_week",
                                               "tempmax_lag", "tempmin_lag", "CARBCty", "RFGCty", "RVPCty", "treat_rvpII", 
                                               "treat_rvpI", "treat_rfg", "treat_carb", "fips", "panelid",  "state_code", "year",
-                                              "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max", "census_region" )))
+                                              "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max", "census_region", "county_code",
+                                              "year")))
+
+write_csv(final_subset, "intermediates/fig_5.csv")
 # fips*statid, dow^cenr, cr^y, dow^Temp
 # I've removed a bunch of interaction terms from the year_weather one since it ate too much memory
 setFixest_fml(..weather = ~ poly(TempMax, 3, simple = TRUE) + (poly(TempMin, 3, simple = TRUE)) + 
-                TempMax*TempMin + (poly(Snow, 2, simple = TRUE)) + (poly(Snow, 2, simple = TRUE)) + TempMax*Rain 
+                TempMax*TempMin + (poly(Snow, 2, simple = TRUE)) + (poly(Rain, 2, simple = TRUE)) + TempMax*Rain 
               + TempMax*tempmax_lag + TempMax*tempmin_lag + tempmax_lag + tempmin_lag,
               ..year_weather = ~ i(day_year, TempMax) + i(day_year, TempMin) +  i(day_year, Rain) + i(day_year, Snow),
               ..dates = ~ day_year + day_of_week,
-              ..week_weather = ~ i(day_of_week,TempMax) + i(day_of_week,TempMin) + i(day_of_week,Rain) + i(day_of_week,Snow)
+              ..year_fe = ~ day_year^TempMax + day_year^TempMin + day_year^Rain + day_year^Rain + day_year^Snow,
+              ..week_weather = ~ day_of_week^TempMax + day_of_week^TempMin + day_of_week^Rain + day_of_week^Snow
 ) 
-a
-rfg <- feols(ozone_max ~ ..weather + ..dates + ..year_weather | panelid,
-             data = final_subset, nthreads = 3, mem.clean  = TRUE, cluster = c("state_code", "year"))
+
+rfg <- feols(ozone_max ~ ..weather + ..dates | fips^state_code + ..week_weather + county_code^year + ..year_fe,
+             data = final_subset, nthreads = 5, mem.clean  = TRUE, cluster = c("state_code", "year"))
 
 # fips*statid, dow^cenr, cr^y, dow^Temp
 rfg_sub <- final_subset
 rfg_sub <- slice(rfg_sub, rfg$obs_selection$subset)
 rfg_sub <- slice(rfg_sub, rfg$obs_selection$obsRemoved)
-rfg_plotter <- tibble("residuals" = rfg$residuals, "year" = rfg_sub$year, "treated_rvp" = rfp_sub$RVPCty, "baseline" = rfp_sub$baseline, "treated_carb" = rfp_sub$CARBCty, "treated_rfg" = rfp_sub$treat_rfg)
-rfg_plotter <- subset(rfg_plotter, baseline == 1 | treated == 1)
+rfg_plotter <- tibble("residuals" = rfg$residuals, "year" = rfg_sub$year, "treated_rvp" = rfg_sub$RVPCty, "baseline" = rfg_sub$baseline, "treated_carb" = rfg_sub$CARBCty, "treated_rfg" = rfg_sub$treat_rfg)
+rfg_plotter <- subset(rfg_plotter, baseline == 1 | treated_rfg == 1)
 
 
-rfg_plotter <- mutate(group_by(select(rfg_plotter, residuals, year, treated), year, treated),
+rfg_plotter <- mutate(group_by(select(rfg_plotter, residuals, year, treated_rfg), year, treated_rfg),
                   avg_residual = mean(residuals, na.rm = TRUE))
 
-rfg_plot <- ggplot(subset(rfg_plotter, year <= 2003), aes(y=avg_residual, x=year, color = factor(treated))) +
+rfg_plot <- ggplot(subset(rfg_plotter, year <= 2003), aes(y=avg_residual, x=year, color = factor(treated_rfg))) +
   geom_line() +
   geom_vline(xintercept = 1995) +
   theme_bw()
