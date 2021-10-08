@@ -29,6 +29,12 @@ fips_vec <- neighbor_treated$fips
 #                                TRUE ~ 0)
 #)
 
+south = c(10, 11, 12, 13, 24, 37, 45, 51, 54, 01, 21, 28, 47, 05, 22, 40, 48)
+north = c(09, 23, 25, 33, 44, 50, 34, 36, 42)
+midwest = c(18, 17, 26, 39, 55, 19, 20, 27, 29, 31, 38, 46)
+west = c(04, 08, 16, 35, 30, 49, 32, 56, 02, 06, 15, 41, 53)
+
+
 final_subset = mutate(final_subset, 
                    ever_treated = case_when(RVPCty == 1 ~ 1, 
                                             RFGCty == 1 ~ 1,
@@ -36,7 +42,14 @@ final_subset = mutate(final_subset,
                                             TRUE ~ 0),
                     baseline = case_when(ever_treated == 1 ~ 0,
                                          TRUE ~ 1),
+                   census_region = case_when(state_code %in% north ~ 0,
+                                        state_code %in% south ~ 1,
+                                        state_code %in% midwest ~ 2,
+                                        state_code %in% west ~ 3,
+                                        TRUE ~ -1)
 )
+
+final_subset <- subset(final_subset, !(census_region == -1))
 
 final_subset$tempmax_lag <- lag(final_subset$TempMax, n = 1)
 final_subset$tempmin_lag <- lag(final_subset$TempMin, n = 1)
