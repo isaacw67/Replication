@@ -9,7 +9,7 @@ library(tidyverse)
 
 rfg_sub <- read_csv("intermediates/stata_resids.csv")
 rfg_data <- tibble("residuals" = rfg_sub$out_resids, "year" = rfg_sub$year, "treated_rvp" = rfg_sub$rvpcty, "baseline" = rfg_sub$baseline, "treated_carb" = rfg_sub$carbcty, "treated_rfg" = rfg_sub$rfgcty)
-rfg_data <- subset(rfg_data, baseline == 1 | treated_rfg == 1)
+rfg_data <- subset(rfg_data, baseline == 1 | (treated_rvp == 0 & treated_carb == 0 & treated_rfg == 1))
 
 
 rfg_plotter <- rfg_data %>%
@@ -43,7 +43,7 @@ plot(rvp_plot)
 
 
 carb_data <- tibble("residuals" = rfg_sub$out_resids, "year" = rfg_sub$year, "treated_rvp" = rfg_sub$rvpcty, "baseline" = rfg_sub$baseline, "treated_carb" = rfg_sub$carbcty, "treated_rfg" = rfg_sub$rfgcty)
-carb_data <- subset(carb_data, baseline == 1 | treated_carb == 1)
+carb_data <- subset(carb_data, baseline == 1 | (treated_rvp == 0 & treated_carb == 1 & treated_rfg == 0))
 
 
 carb_plotter <- carb_data %>%
