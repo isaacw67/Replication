@@ -77,7 +77,9 @@ make_clean <- function() {
   final_subset <- inner_join(final_subset, income, by = c("state_code" = "state_code", "county_code" = "county_code", 
                                           "year" = "year"))
   CNOx <- mutate(CNOx,
-                 Date = as.Date(Date, format = "%d%b%y")
+                 Date = as.Date(Date, format = "%d%b%y"),
+                 CumNOx = case_when(month(Date) %in% c(6, 7, 8) ~ CumNOx,
+                                  TRUE ~ 0)
           )
   
   final_subset <- inner_join(final_subset, CNOx, by = c("Date" = "Date"))
@@ -111,7 +113,7 @@ make_fig5_data <- function(final_subset) {
                                                 "tempmax_lag", "tempmin_lag", "CARBCty", "RFGCty", "RVPCty", "treat_rvpII", 
                                                 "treat_rvpI", "treat_rfg", "treat_carb", "fips", "panelid",  "state_code", "year",
                                                 "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max", "census_region", "county_code",
-                                                "year", "site_id", "income")))
+                                                "year", "site_id", "income","ln_ozone")))
   
   print("| Saving fig5")
   data.table::fwrite(fig5_sub, "intermediates/fig_5.csv")
@@ -130,7 +132,7 @@ make_table2 <- function(final_subset) {
   
   
 
-  col1 <- select(col1, any_of(c("TempMax", "TempMin", "Rain", "Snow", "day_year", "day_of_week",
+  col1 <- select(final_subset, any_of(c("TempMax", "TempMin", "Rain", "Snow", "day_year", "day_of_week",
                                             "tempmax_lag", "tempmin_lag", "CARBCty", "RFGCty", "RVPCty", "treat_rvpII", 
                                             "treat_rvpI", "treat_rfg", "treat_CARB", "fips", "panelid",  "state_code", "year",
                                             "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max", "census_region", "county_code",
@@ -142,41 +144,46 @@ make_table2 <- function(final_subset) {
 
 ## Figure 6 data gen
 
+make_poly <- function(sample_data) {
+  year_start <- year(min(sample_data$Date, na.rm = TRUE))
+  month_start <- min(subset(sample_data, year == year_start)$month, na.rm = TRUE)
+  day_start <- min(subset(sample_data, year == year_start & month == month_start)$day, na.rm = TRUE)
+  date_start <- dmy(paste(day_start, month_start, year_start, sep = "/"))
+  
+  cur <- mutate(sample_data,
+                         days_since =  as.numeric(as.period(interval(date_start, Date), unit = "day"), "days")
+  )
+  
+  date_poly <- polym(cur$days_since, degree = 8)
+  
+  # Add date_poly to sample:
+  date_poly <- as_tibble(date_poly)
+  date_poly <- rename(date_poly,
+                      "date_1" = '1',
+                      "date_2" = '2',
+                      "date_3" = '3',
+                      "date_4" = '4',
+                      "date_5" = '5',
+                      "date_6" = '6',
+                      "date_7" = '7',
+                      "date_8" = '8')
+  
+  cur <- bind_cols(cur, date_poly)
+  cur
+}
+
 make_fig6 <- function() {
   final_subset <- import_clean()
 
   # We need eigth degree polynomials over the Date 
   # controls (doy and dow):
-  doy_poly <- polym(final_subset$day_year, degree = 8)
-  dow_poly <- polym(final_subset$day_of_week, degree = 6)
-  
-  # Add date_poly to final_subset:
-  doy_poly <- as_tibble(doy_poly)
-  doy_poly <- rename(doy_poly,
-                     "doy_1" = '1',
-                     "doy_2" = '2',
-                     "doy_3" = '3',
-                     "doy_4" = '4',
-                     "doy_5" = '5',
-                     "doy_6" = '6',
-                     "doy_7" = '7',
-                     "doy_8" = '8')
-  
-  dow_poly <- as_tibble(dow_poly)
-  dow_poly <- rename(dow_poly,
-                     "dow_1" = '1',
-                     "dow_2" = '2',
-                     "dow_3" = '3',
-                     "dow_4" = '4',
-                     "dow_5" = '5',
-                     "dow_6" = '6')
-  final_subset <- bind_cols(final_subset, doy_poly)
-  final_subset <- bind_cols(final_subset, dow_poly)
-  
-  
   cam_data <- filter(final_subset, site_id == 1001 & state_code == 34)
   mad_data <- filter(final_subset, site_id == 3007 & state_code == 17)
   tex_data <- filter(final_subset, site_id == 47 & state_code == 48)
+  
+  cam_data <- make_poly(cam_data)
+  mad_data <- make_poly(mad_data)
+  tex_data <- make_poly(tex_data)
   
   ## Cam, mad and tex will all be small enough to just write on their own:
   
@@ -189,37 +196,12 @@ make_fig6 <- function() {
 make_fig8 <- function() {
   final_subset <- import_clean()
   
-  # We need eigth degree polynomials over the Date 
-  # controls (doy and dow):
-  doy_poly <- polym(final_subset$day_year, degree = 8)
-  dow_poly <- polym(final_subset$day_of_week, degree = 6)
-  
-  # Add date_poly to final_subset:
-  doy_poly <- as_tibble(doy_poly)
-  doy_poly <- rename(doy_poly,
-                     "doy_1" = '1',
-                     "doy_2" = '2',
-                     "doy_3" = '3',
-                     "doy_4" = '4',
-                     "doy_5" = '5',
-                     "doy_6" = '6',
-                     "doy_7" = '7',
-                     "doy_8" = '8')
-  
-  dow_poly <- as_tibble(dow_poly)
-  dow_poly <- rename(dow_poly,
-                     "dow_1" = '1',
-                     "dow_2" = '2',
-                     "dow_3" = '3',
-                     "dow_4" = '4',
-                     "dow_5" = '5',
-                     "dow_6" = '6')
-  final_subset <- bind_cols(final_subset, doy_poly)
-  final_subset <- bind_cols(final_subset, dow_poly)
-  
-  
+
   cal1_data <- filter(final_subset, site_id == 1201 & state_code == 6)
   cal2_data <- filter(final_subset, site_id == 1701 & state_code == 6)
+  
+  cal1_data <- make_poly(cal1_data)
+  cal2_data <- make_poly(cal2_data)
   print("| Saving fig8")
   data.table::fwrite(rbind(cal1_data, cal2_data), "intermediates/fig8.csv")
   print("| Saved")
@@ -230,7 +212,6 @@ make_fig8 <- function() {
 ## Controller:
 
 run_data_get <- function(rp) {
-  setDTthreads(4)
   if (rp$clean) {
     make_clean()
   }

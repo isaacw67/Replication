@@ -61,3 +61,30 @@ reghdfe ln(epa_8hr_num) treat_rvpi treat_rvpii treat_rfg treat_carb, absorb(i.fi
 eststo col6
 
 esttab
+
+
+// Now for figures 6 and 8:
+
+clear
+import delimited "intermediates\fig6.csv"
+
+// Redefine locals
+local weather tempmax^3  tempmax^2  tempmax  tempmin^3  tempmin^2  tempmin ///
+			tempman*tempmin  snow^2  snow  rain^2  rain  tempmax*rain  ///
+			tempmax*tempmax_lag  tempmax*tempmin_lag  tempmax_lag  tempmin_lag ///
+			
+local dates  day_year  day_of_week
+
+local year_int i(day_year#`weather`')
+
+local year_test day_year*tempmax^3 day_year*tempmax^2  day_year*tempmax  day_year*tempmin^3  day_year*tempmin^2  day_year*tempmin ///
+			day_year*tempman*tempmin  day_year*snow^2  day_year*snow  day_year*rain^2  day_year*rain  day_year*tempmax*rain  ///
+			day_year*tempmax*tempmax_lag  day_year*tempmax*tempmin_lag  day_year*tempmax_lag  day_year*tempmin_lag ///
+
+local week_int day_of_week#tempmax  day_of_week#tempmin  day_of_week#rain  day_of_week#snow
+
+local poly date_1 date_2 date_3 date_4 date_5 date_6 date_7 date_8
+
+reghdfe ln_ozone i.treat $weather $poly, absorb(i.fips#i.state_code) residuals(out_resids)
+
+export delimited using "intermediates\stata_fig_6.csv", replace
