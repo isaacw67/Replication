@@ -17,11 +17,12 @@ local year_int day_year#c.tempmaxcube day_year#c.tempmaxsq day_year#c.tempmax da
 local week_int i.day_of_week#c.tempmax i.day_of_week#c.tempmin i.day_of_week#c.rain i.day_of_week#c.snow
 
 
-reghdfe ozone_max $weather $dates $year_int $week_int income, absorb(i.fips#i.site_id i.(census_region#year)) cluster(i.(state_code#year)) residuals(out_resids)
+reghdfe ozone_max rvpcty rfgcty carbcty $weather $dates $year_int $week_int income, absorb(i.fips#i.site_id i.(census_region#year)) cluster(i.(state_code#year)) residuals(out_resids)
 
 
 // Retrieve residuals:
 export delimited using "intermediates\stata_resids.csv", replace
+
 clear
 
 local weather tempmaxcube tempmaxsq tempmax tempmincube tempminsq tempmin ///
