@@ -4,11 +4,11 @@ setwd("~/R/Replication/")
 source("rcode/data_gen.R")
 
 run_pass <- tibble(
-  clean    = F,
-  fig5     = F,
-  table2   = F,
+  clean    = T,
+  fig5     = T,
+  table2   = T,
   fig6     = T,
-  fig8     = F
+  fig8     = T
 )
 
 

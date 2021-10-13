@@ -16,7 +16,7 @@ rfg_plotter <- rfg_data %>%
   group_by(year, treated_rfg, baseline) %>%
     summarise(mean = mean(residuals, na.rm = TRUE))
 
-rfg_plot <- ggplot(subset(rfg_plotter, year <= 2003 & year >= 1989), aes(y=mean, x=year, color = factor(treated_rfg))) +
+rfg_plot <- ggplot(subset(rfg_plotter, year >= 1989), aes(y=mean, x=year, color = factor(treated_rfg))) +
   geom_line() +
   geom_vline(xintercept = 1995) +
   theme_bw()
@@ -50,7 +50,7 @@ carb_plotter <- carb_data %>%
   group_by(year, treated_carb, baseline) %>%
   summarise(mean = mean(residuals, na.rm = TRUE))
 
-carb_plot <- ggplot(subset(carb_plotter, year <= 2003), aes(y=mean, x=year, color = factor(treated_carb))) +
+carb_plot <- ggplot(subset(carb_plotter), aes(y=mean, x=year, color = factor(treated_carb))) +
   geom_line() +
   geom_vline(xintercept = 1995) +
   theme_bw()

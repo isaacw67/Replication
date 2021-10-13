@@ -7,15 +7,40 @@ library(fixest)
 library(lubridate)
 library(tidyverse)
 
-fig6 <- read_csv("intermediates/stata_fig_6.csv")
-sites <- unique(fig6$site_id)
+sites <- c("cam", "tex", "mad")
 
-site_dat <- subset(fig6, site_id == sites[1])
-site_dat <- mutate(rowwise(site_dat),
-               y_ax = out_resids + days_since*date_1 + days_since*date_2^2 + days_since*date_3^3 + days_since*date_4^4 + days_since*date_5^5 + days_since*date_6^6 + days_since*date_7^7 + days_since*date_8^8
-               )
+for (num in c(1,2,3)) {
+  fig6 <- read_csv(paste("intermediates/stata_fig_6_",sites[num],".csv", sep = ""))
 
-plt <- ggplot(site_dat, aes(date, y_ax)) +
-  geom_point()
+  site_dat <- subset(fig6, out_resids >= -1 & out_resids <= 1 & year <= 2003)
+  
+  plt <- ggplot(site_dat, aes(date, out_resids)) +
+    geom_point(size = 0.75) + 
+    geom_line(color = "blue", data = site_dat, aes(x = date, y = pred_zeroed)) +
+    theme_bw() +
+    ggtitle(paste("Residuals+Predicted Values for", sites[num])) +
+    xlab("Date") +
+    ylab("Residual + Predicted Value")
 
-plot(plt)
+  
+  plot(plt)
+}
+
+cal_sites <- c("cal1", "cal2")
+for (num in c(1,2)) {
+  fig6 <- read_csv(paste("intermediates/stata_fig_8_",cal_sites[num],".csv", sep = ""))
+  
+  site_dat <- subset(fig6, out_resids >= -1 & out_resids <= 1 & year <= 2003)
+  
+  plt <- ggplot(site_dat, aes(date, out_resids)) +
+    geom_point(size = 0.75) + 
+    geom_line(color = "blue", data = site_dat, aes(x = date, y = pred_zeroed)) +
+    theme_bw() +
+    ggtitle(paste("Residuals+Predicted Values for", cal_sites[num])) +
+    xlab("Date") +
+    ylab("Residual + Predicted Value")
+  
+  
+  plot(plt)
+}
+

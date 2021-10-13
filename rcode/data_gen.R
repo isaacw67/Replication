@@ -12,15 +12,14 @@ make_clean <- function() {
   print("| Making Clean Data")
   counties <- read_csv("data/AER20090377_CountyList.csv")
   CNOx <- read_csv("data/AER20090377_CumulativeNOxInstallations.csv")
-  finaldata <- read_csv("data/AER20090377_FinalData.csv")
+  final_subset <- read_csv("data/AER20090377_FinalData.csv")
   income <- read_csv("data/AER20090377_IncomeData.csv")
-  neighbor <- read_csv("data/AER20090377_NeighborData.csv")
-  final_subset <- finaldata
-  rm(finaldata)
+  neighbor <- read_csv("data/AER20090377_NeighborData.csv") 
   
   print("| Imported")
   final_subset$Date <- as.Date(final_subset$Date, format = "%d %b %Y")
-  final_subset <- subset(final_subset, ozone_max > 0)
+  # Cut down data
+  final_subset <- subset(final_subset, ozone_max > 0 & year <= 2003 & valid >= 9)
   
   # Clean data a bit
   
@@ -78,10 +77,18 @@ make_clean <- function() {
                                           "year" = "year"))
   CNOx <- mutate(CNOx,
                  Date = as.Date(Date, format = "%d%b%y"),
-                 CumNOx = case_when(month(Date) %in% c(6, 7, 8) ~ CumNOx,
+                 TreatNOx = case_when(month(Date) %in% c(6, 7, 8) ~ CumNOx,
                                   TRUE ~ 0)
           )
   
+  final_subset <- mutate(final_subset, 
+                         tempmaxcube = TempMax^3,
+                         tempmaxsq = TempMax^2,
+                         tempmincube = TempMin^3,
+                         tempminsq = TempMin^2,
+                         snowsq = Snow^2,
+                         rainsq = Rain^2
+                         )
   final_subset <- inner_join(final_subset, CNOx, by = c("Date" = "Date"))
   print("| Saving clean")
   data.table::fwrite(final_subset, "intermediates/clean_data.csv")
@@ -94,8 +101,8 @@ import_clean <- function() {
 
 speed_test <- function() {
   test<- read_csv("intermediates/clean_data.csv")
-  setDTthreads(4)
-  data.table::fwrite(test, "intermediates/clean_data.csv")
+  dt <- data.table(test)
+  fwrite(test, "intermediates/test.csv")
 }
 
 make_fig5_data <- function(final_subset) {
@@ -113,7 +120,8 @@ make_fig5_data <- function(final_subset) {
                                                 "tempmax_lag", "tempmin_lag", "CARBCty", "RFGCty", "RVPCty", "treat_rvpII", 
                                                 "treat_rvpI", "treat_rfg", "treat_carb", "fips", "panelid",  "state_code", "year",
                                                 "Date", "baseline", "ever_treated", "TreatRVPII", "ozone_max", "census_region", "county_code",
-                                                "year", "site_id", "income","ln_ozone")))
+                                                "year", "site_id", "income","ln_ozone", "treat", "tempmaxcube", "tempmaxsq", "tempmincube",
+                                            "tempminsq", "rainsq", "snowsq")))
   
   print("| Saving fig5")
   data.table::fwrite(fig5_sub, "intermediates/fig_5.csv")
@@ -144,16 +152,20 @@ make_table2 <- function(final_subset) {
 
 ## Figure 6 data gen
 
-make_poly <- function(sample_data) {
+dates_to_num <- function(sample_data) {
   year_start <- year(min(sample_data$Date, na.rm = TRUE))
   month_start <- min(subset(sample_data, year == year_start)$month, na.rm = TRUE)
   day_start <- min(subset(sample_data, year == year_start & month == month_start)$day, na.rm = TRUE)
   date_start <- dmy(paste(day_start, month_start, year_start, sep = "/"))
   
   cur <- mutate(sample_data,
-                         days_since =  as.numeric(as.period(interval(date_start, Date), unit = "day"), "days")
+                days_since =  as.numeric(as.period(interval(date_start, Date), unit = "day"), "days")
   )
-  
+  cur
+}
+
+make_poly <- function(sample_data) {
+  cur <-sample_data
   date_poly <- polym(cur$days_since, degree = 8)
   
   # Add date_poly to sample:
@@ -174,6 +186,15 @@ make_poly <- function(sample_data) {
 
 make_fig6 <- function() {
   final_subset <- import_clean()
+  
+  final_subset <- mutate(final_subset, 
+                         season = case_when(month %in% c(12, 1, 2) ~ 0,
+                                            month %in% c(3, 4, 5)  ~ 1,
+                                            month %in% c(6, 7, 8) ~ 2,
+                                            month %in% c(9, 10, 11) ~ 3,
+                                            TRUE ~ 0)
+                                            
+  )
 
   # We need eigth degree polynomials over the Date 
   # controls (doy and dow):
@@ -181,14 +202,12 @@ make_fig6 <- function() {
   mad_data <- filter(final_subset, site_id == 3007 & state_code == 17)
   tex_data <- filter(final_subset, site_id == 47 & state_code == 48)
   
-  cam_data <- make_poly(cam_data)
-  mad_data <- make_poly(mad_data)
-  tex_data <- make_poly(tex_data)
-  
   ## Cam, mad and tex will all be small enough to just write on their own:
   
   print("| Saving fig6")
-  data.table::fwrite(rbind(cam_data, mad_data, tex_data), "intermediates/fig6.csv")
+  data.table::fwrite(cam_data, "intermediates/fig6_cam.csv")
+  data.table::fwrite(mad_data, "intermediates/fig6_mad.csv")
+  data.table::fwrite(tex_data, "intermediates/fig6_tex.csv")
   print("| Saved")
 
 }
@@ -196,14 +215,21 @@ make_fig6 <- function() {
 make_fig8 <- function() {
   final_subset <- import_clean()
   
+  final_subset <- mutate(final_subset, 
+                         season = case_when(month %in% c(12, 1, 2) ~ 0,
+                                            month %in% c(3, 4, 5)  ~ 1,
+                                            month %in% c(6, 7, 8) ~ 2,
+                                            month %in% c(9, 10, 11) ~ 3,
+                                            TRUE ~ 0)
+                         
+  )
 
   cal1_data <- filter(final_subset, site_id == 1201 & state_code == 6)
   cal2_data <- filter(final_subset, site_id == 1701 & state_code == 6)
-  
-  cal1_data <- make_poly(cal1_data)
-  cal2_data <- make_poly(cal2_data)
+
   print("| Saving fig8")
-  data.table::fwrite(rbind(cal1_data, cal2_data), "intermediates/fig8.csv")
+  data.table::fwrite(cal1_data, "intermediates/fig8_cal1.csv")
+  data.table::fwrite(cal2_data, "intermediates/fig8_cal2.csv")
   print("| Saved")
   
 }
