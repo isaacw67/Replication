@@ -98,8 +98,8 @@ egen MaxDate = max(DateS)
 egen MinDate = min(DateS)
 gen Z = 2 * (DateS - MinDate) / (MaxDate - MinDate) - 1
 gen Time1 = Z 
-gen Time2 = 2 * Zsq - 1
-gen Time3 = 4 * Zcube - 3 * Z
+gen Time2 = 2 * Z^2 - 1
+gen Time3 = 4 * Z^3 - 3 * Z
 gen Time4 = 2 * Z * Time3 - Time2
 gen Time5 = 2 * Z * Time4 - Time3
 gen Time6 = 2 * Z * Time5 - Time4
@@ -151,8 +151,8 @@ egen MaxDate = max(DateS)
 egen MinDate = min(DateS)
 gen Z = 2 * (DateS - MinDate) / (MaxDate - MinDate) - 1
 gen Time1 = Z 
-gen Time2 = 2 * Zsq - 1
-gen Time3 = 4 * Zcube - 3 * Z
+gen Time2 = 2 * Z^2 - 1
+gen Time3 = 4 * Z^3 - 3 * Z
 gen Time4 = 2 * Z * Time3 - Time2
 gen Time5 = 2 * Z * Time4 - Time3
 gen Time6 = 2 * Z * Time5 - Time4
@@ -207,8 +207,8 @@ egen MaxDate = max(DateS)
 egen MinDate = min(DateS)
 gen Z = 2 * (DateS - MinDate) / (MaxDate - MinDate) - 1
 gen Time1 = Z 
-gen Time2 = 2 * Zsq - 1
-gen Time3 = 4 * Zcube - 3 * Z
+gen Time2 = 2 * Z^2 - 1
+gen Time3 = 4 * Z^3 - 3 * Z
 gen Time4 = 2 * Z * Time3 - Time2
 gen Time5 = 2 * Z * Time4 - Time3
 gen Time6 = 2 * Z * Time5 - Time4
@@ -261,8 +261,8 @@ egen MaxDate = max(DateS)
 egen MinDate = min(DateS)
 gen Z = 2 * (DateS - MinDate) / (MaxDate - MinDate) - 1
 gen Time1 = Z 
-gen Time2 = 2 * Zsq - 1
-gen Time3 = 4 * Zcube - 3 * Z
+gen Time2 = 2 * Z^2 - 1
+gen Time3 = 4 * Z^3 - 3 * Z
 gen Time4 = 2 * Z * Time3 - Time2
 gen Time5 = 2 * Z * Time4 - Time3
 gen Time6 = 2 * Z * Time5 - Time4
@@ -315,8 +315,8 @@ egen MaxDate = max(DateS)
 egen MinDate = min(DateS)
 gen Z = 2 * (DateS - MinDate) / (MaxDate - MinDate) - 1
 gen Time1 = Z 
-gen Time2 = 2 * Zsq - 1
-gen Time3 = 4 * Zcube - 3 * Z
+gen Time2 = 2 * Z^2 - 1
+gen Time3 = 4 * Z^3 - 3 * Z
 gen Time4 = 2 * Z * Time3 - Time2
 gen Time5 = 2 * Z * Time4 - Time3
 gen Time6 = 2 * Z * Time5 - Time4
@@ -326,8 +326,8 @@ gen Time9 = 2 * Z * Time8 - Time7
 gen Time10 = 2 * Z * Time9 - Time8
 drop Z
 
-
-reghdfe ln_ozone `season_int' treat_rfg treat_rvpii treat_carb tempmaxcube tempmaxsq tempmax tempmincube tempminsq tempmin tempmax*tempmin snowsq snow rainsq rain tempmax*rain tempmax*tempmax_lag tempmax*tempmin_lag tempmax_lag tempmin_lag i.month `year_int' Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9, noabsorb residuals(out_resids)
+set maxvar 40000
+reghdfe ln_ozone `season_int' treat_rfg treat_rvpii treat_carb `weather' i.month `year_int' Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9, noabsorb residuals(out_resids)
 
 gen pred_val = _b[treat_rfg] * treat_rfg + _b[treat_carb]*treat_carb + _b[treat_rvpii]*treat_rvpii + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9
 
