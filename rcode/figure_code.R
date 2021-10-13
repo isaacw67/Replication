@@ -8,6 +8,7 @@ library(lubridate)
 library(tidyverse)
 
 rfg_sub <- read_csv("intermediates/stata_resids.csv")
+
 rfg_data <- tibble("residuals" = rfg_sub$out_resids, "year" = rfg_sub$year, "treated_rvp" = rfg_sub$rvpcty, "baseline" = rfg_sub$baseline, "treated_carb" = rfg_sub$carbcty, "treated_rfg" = rfg_sub$rfgcty)
 rfg_data <- subset(rfg_data, baseline == 1 | (treated_rvp == 0 & treated_carb == 0 & treated_rfg == 1))
 

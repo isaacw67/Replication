@@ -14,7 +14,7 @@ for (num in c(1,2,3)) {
 
   site_dat <- subset(fig6, out_resids >= -1 & out_resids <= 1 & year <= 2003)
   
-  plt <- ggplot(site_dat, aes(date, out_resids)) +
+  plt <- ggplot(site_dat, aes(date, out_resids + pred_zeroed)) +
     geom_point(size = 0.75) + 
     geom_line(color = "blue", data = site_dat, aes(x = date, y = pred_zeroed)) +
     theme_bw() +
@@ -32,7 +32,7 @@ for (num in c(1,2)) {
   
   site_dat <- subset(fig6, out_resids >= -1 & out_resids <= 1 & year <= 2003)
   
-  plt <- ggplot(site_dat, aes(date, out_resids)) +
+  plt <- ggplot(site_dat, aes(date, out_resids + pred+zeored)) +
     geom_point(size = 0.75) + 
     geom_line(color = "blue", data = site_dat, aes(x = date, y = pred_zeroed)) +
     theme_bw() +

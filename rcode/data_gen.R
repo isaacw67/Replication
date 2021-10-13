@@ -89,6 +89,7 @@ make_clean <- function() {
                          snowsq = Snow^2,
                          rainsq = Rain^2
                          )
+  
   final_subset <- inner_join(final_subset, CNOx, by = c("Date" = "Date"))
   print("| Saving clean")
   data.table::fwrite(final_subset, "intermediates/clean_data.csv")
