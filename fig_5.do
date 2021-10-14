@@ -8,7 +8,7 @@ local weather tempmaxcube tempmaxsq tempmax tempmincube tempminsq tempmin ///
 			c.tempmax#c.tempmin snowsq snow rainsq rain c.tempmax#c.rain ///
 			c.tempmax#c.tempmax_lag c.tempmax#c.tempmin_lag tempmax_lag tempmin_lag ///
 			
-local dates day_year day_of_week
+local dates i.day_year i.day_of_week
 
 local year_int day_year#c.tempmaxcube day_year#c.tempmaxsq day_year#c.tempmax day_year#c.tempmincube day_year#c.tempminsq day_year#c.tempmin ///
 			day_year#c.tempmax#c.tempmin day_year#c.snowsq day_year#c.snow day_year#c.rainsq day_year#c.rain day_year#c.tempmax#c.rain ///
@@ -17,11 +17,14 @@ local year_int day_year#c.tempmaxcube day_year#c.tempmaxsq day_year#c.tempmax da
 local week_int i.day_of_week#c.tempmax i.day_of_week#c.tempmin i.day_of_week#c.rain i.day_of_week#c.snow
 
 
-reghdfe ozone_max rvpcty rfgcty carbcty $weather $dates $year_int $week_int income, absorb(i.fips#i.site_id i.(census_region#year)) cluster(i.(state_code#year)) residuals(out_resids)
+// use i.(census_region#year) maybe?
+
+reghdfe ozone_max rvpcty rfgcty carbcty $weather $dates $year_int $week_int income, absorb(i.fips#i.site_id) cluster(i.(state_code#year)) residuals(out_resids)
 
 
 // Retrieve residuals:
 export delimited using "intermediates\stata_resids.csv", replace
+
 
 clear
 
@@ -63,7 +66,8 @@ eststo col6
 reghdfe ln(epa_8hr) treat_rvpi treat_rvpii treat_rfg treat_carb $weather $year_int , absorb(i.fips#i.state_code i.(census_region#year) i.(census_region#day_of_week)) cluster(i.(state_code#year))
 eststo col7
 
-esttab
+esttab using table2.tex, replace label title(Table 2) nonumbers mtitles("Column 1" "Column 2" "Column 3" "Column 6" "Column 7") 
+
 
 
 // Now for figures 6 and 8:
@@ -111,9 +115,9 @@ gen Time10 = 2 * Z * Time9 - Time8
 drop Z
 
 
-reghdfe ln_ozone $season_int treat_rfg $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 cumnox, noabsorb residuals(out_resids)
+reghdfe ln_ozone $season_int treat_rfg $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 Time10 cumnox, noabsorb cluster(i.year#i.season) residuals(out_resids)
 
-gen pred_val = _b[treat_rfg] * treat_rfg + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9
+gen pred_val = _b[treat_rfg] * treat_rfg + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9 + _b[Time10]*Time10
 
 
 egen means = mean(pred_val)
@@ -164,9 +168,9 @@ gen Time10 = 2 * Z * Time9 - Time8
 drop Z
 
 
-reghdfe ln_ozone $season_int treat_rvpii $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9, noabsorb residuals(out_resids)
+reghdfe ln_ozone $season_int treat_rvpii $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 Time10, noabsorb cluster(i.year#i.season) residuals(out_resids)
 
-gen pred_val = _b[treat_rvpii] * treat_rvpii+ _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9
+gen pred_val = _b[treat_rvpii] * treat_rvpii+ _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9 + _b[Time10]*Time10
 
 
 egen means = mean(pred_val)
@@ -220,9 +224,9 @@ gen Time10 = 2 * Z * Time9 - Time8
 drop Z
 
 
-reghdfe ln_ozone $season_int treat_rfg treat_rvpii $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 cumnox, noabsorb residuals(out_resids)
+reghdfe ln_ozone $season_int treat_rfg treat_rvpii $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 Time10, noabsorb cluster(i.year#i.season) residuals(out_resids)
 
-gen pred_val = _b[treat_rfg] * treat_rfg + _b[treat_rvpii] * treat_rvpii + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9
+gen pred_val = _b[treat_rfg] * treat_rfg + _b[treat_rvpii] * treat_rvpii + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9 + _b[Time10]*Time10
 
 
 egen means = mean(pred_val)
@@ -274,9 +278,9 @@ gen Time10 = 2 * Z * Time9 - Time8
 drop Z
 
 
-reghdfe ln_ozone $season_int treat_rfg treat_rvpii treat_carb $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9, noabsorb residuals(out_resids)
+reghdfe ln_ozone $season_int treat_rvpii  treat_carb treat_rfg $weather $year_int i.month Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 Time10, noabsorb cluster(i.year#i.season) residuals(out_resids)
 
-gen pred_val = _b[treat_rfg] * treat_rfg + _b[treat_carb]*treat_carb + _b[treat_rvpii]*treat_rvpii + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9
+gen pred_val = _b[treat_rvpii]*treat_rvpii + _b[treat_carb]*treat_carb + _b[treat_rfg]*treat_rfg + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9 + _b[Time10]*Time10
 
 
 egen means = mean(pred_val)
@@ -327,10 +331,11 @@ gen Time9 = 2 * Z * Time8 - Time7
 gen Time10 = 2 * Z * Time9 - Time8
 drop Z
 
+set emptycells drop
 
-reghdfe ln_ozone `season_int' treat_rfg treat_rvpii treat_carb `weather' i.month `year_int' Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9, noabsorb residuals(out_resids)
+reghdfe ln_ozone `season_int' treat_rvpii treat_carb treat_rfg `weather' i.month `year_int' Time1 Time2 Time3 Time4 Time5 Time6 Time7 Time8 Time9 Time10, noabsorb cluster(i.year#i.season) residuals(out_resids)
 
-gen pred_val = _b[treat_rfg] * treat_rfg + _b[treat_carb]*treat_carb + _b[treat_rvpii]*treat_rvpii + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9
+gen pred_val = _b[treat_rvpii]*treat_rvpii + _b[treat_carb]*treat_carb + _b[treat_rfg]*treat_rfg + _b[Time1]*Time1 + _b[Time2]*Time2 + _b[Time3] * Time3 + _b[Time4] * Time4 + _b[Time5] * Time5 + _b[Time6] * Time6 + _b[Time7]*Time7 + _b[Time8]*Time8 + _b[Time9]*Time9 + _b[Time10]*Time10
 
 
 egen means = mean(pred_val)

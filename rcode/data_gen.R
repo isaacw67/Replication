@@ -108,6 +108,9 @@ speed_test <- function() {
 
 make_fig5_data <- function(final_subset) {
   final_subset <- import_clean()
+  
+  final_subset <- subset(final_subset, month %in% c(6, 7, 8))
+  
   # Replicate Figure 5:
   
   # We want to plot residuals for different 
@@ -138,6 +141,7 @@ make_table2 <- function(final_subset) {
   
   # Want only summer months
   final_subset <- subset(final_subset, month %in% c(6, 7, 8))
+
   
   
 
